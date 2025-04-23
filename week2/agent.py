@@ -1,5 +1,9 @@
 from openai import OpenAI
+from dotenv import load_dotenv
 import os
+
+# Load environment variables
+load_dotenv()
 
 # Try to get API key from environment first, fall back to config if not found
 try:
@@ -10,10 +14,9 @@ except ImportError:
     if not api_key:
         raise ValueError("OPENAI_API_KEY not found in environment variables")
 
-# Initialize OpenAI client with v1.x syntax
-client = OpenAI()  # This will automatically use OPENAI_API_KEY from environment
-
 def chat(messages, model="gpt-4", temperature=0.7):
+    # Create a fresh client for each call
+    client = OpenAI()
     response = client.chat.completions.create(
         model=model,
         temperature=temperature,

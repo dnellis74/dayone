@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+ENV/
+
+# Logs and databases
+logs/
+*.log
+*.sqlite
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store 

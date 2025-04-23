@@ -1,9 +1,18 @@
 from openai import OpenAI
-from config import OPENAI_API_KEY
+import os
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+# Try to get API key from environment first, fall back to config if not found
+try:
+    from config import OPENAI_API_KEY
+    api_key = os.getenv("OPENAI_API_KEY", OPENAI_API_KEY)
+except ImportError:
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY not found in environment variables")
 
-def chat(messages, model="gpt-3.5-turbo", temperature=0.7):
+client = OpenAI(api_key=api_key)
+
+def chat(messages, model="gpt-4", temperature=0.7):
     response = client.chat.completions.create(
         model=model,
         temperature=temperature,

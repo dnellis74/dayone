@@ -9,19 +9,18 @@ os.makedirs('logs', exist_ok=True)
 # Configure logging
 def setup_logging():
     # Create a logger
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    logger = logging.getLogger('server_logger')
+    logger.setLevel(logging.DEBUG)
 
     # Create handlers
     console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.DEBUG)
     file_handler = logging.FileHandler(
         f'logs/agent_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
     )
 
     # Create formatters
-    console_formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
+    console_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     file_formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )

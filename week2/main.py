@@ -1,13 +1,21 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from agent import run_agent
 from logging_config import logger
 import traceback
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Server starting up...")
+    yield
+    logger.info("Server shutting down...")
+
 app = FastAPI(
     title="Story Transformation API",
     version="1.0",
     description="A simple API server for transforming adult stories into children's stories",
+    lifespan=lifespan
 )
 
 # Add CORS middleware
@@ -47,11 +55,3 @@ async def log_requests(request: Request, call_next):
 async def root():
     logger.info("Root endpoint accessed")
     return {"message": "Welcome to the Story Transformation API"}
-
-@app.on_event("startup")
-async def startup_event():
-    logger.info("Server starting up...")
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    logger.info("Server shutting down...")

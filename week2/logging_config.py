@@ -9,7 +9,7 @@ os.makedirs('logs', exist_ok=True)
 # Configure logging
 def setup_logging():
     # Create a logger
-    logger = logging.getLogger('server_logger')
+    logger = logging.getLogger('kid_kind')
     logger.setLevel(logging.DEBUG)
 
     # Create handlers

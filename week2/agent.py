@@ -17,21 +17,24 @@ except ImportError:
     if not api_key:
         raise ValueError("OPENAI_API_KEY not found in environment variables")
 
-def chat(messages, model="gpt-4", temperature=0.7):
+def read_archetypes():
     try:
-        logger.debug("Creating httpx client")
+        with open('archetypes.md', 'r') as file:
+            return file.read().strip()
+    except Exception as e:
+        logger.error(f"Error reading archetypes.md: {str(e)}")
+        raise
+
+def chat(messages, model="gpt-4.1-mini", temperature=0.7):
+    try:
         http_client = httpx.Client()
-        
-        logger.debug("Creating OpenAI client")
         client = OpenAI(http_client=http_client)
         
-        logger.info(f"Sending request to OpenAI with model {model}")
         response = client.chat.completions.create(
             model=model,
             temperature=temperature,
             messages=messages
         )
-        logger.debug("Successfully received response from OpenAI")
         return response.choices[0].message.content.strip()
     except Exception as e:
         logger.error(f"Error in chat function: {str(e)}")
@@ -44,44 +47,56 @@ def run_agent(story_title="", story_text=""):
         context = []
 
         # Step 1: Get archetypes
-        logger.debug("Step 1: Getting archetypes")
-        prompt1 = """List common archetypes and story structures used in children's books. Include examples like 'The Hero's Journey', 'Overcoming the Monster', 'Rags to Riches', and explain each in 1-2 sentences."""
-        context.append({"role": "user", "content": prompt1})
-        archetypes = chat(context)
+        logger.debug("Step 1: Reading archetypes from file")
+        archetypes = read_archetypes()
         context.append({"role": "assistant", "content": archetypes})
 
-        # Step 2: Get or use adult story summary
-        logger.debug("Step 2: Getting story summary")
+        # Step 2: Get or use adult story outline
+        logger.debug("Step 2: Getting story outline")
         if story_text.strip():
             logger.debug("Using provided story text")
-            summary = story_text.strip()
+            outline = story_text.strip()
         elif story_title.strip():
-            logger.debug(f"Getting summary for title: {story_title}")
-            prompt2 = f"""Provide a brief plot summary of the story: {story_title}. If it's in the public domain, include key elements and themes."""
+            logger.debug(f"Getting outline for title: {story_title}")
+            prompt2 = f"""Provide a plot outline of the story: {story_title}. It should be formatted as an outline of the story, with the main characters and key events.  Don't use ephumisms or attempt to avoid graphic content.  Spoilers are encouraged."""
             context.append({"role": "user", "content": prompt2})
-            summary = chat(context)
-            context.append({"role": "assistant", "content": summary})
+            outline = chat(context)
+            logger.debug(f"Outline: {outline}")
+            context.append({"role": "assistant", "content": outline})
         else:
             logger.error("No story title or text provided")
             return "Error: You must provide either a story title or full story text."
 
-        # Step 3: Match to children's archetype
-        logger.debug("Step 3: Matching to archetype")
-        prompt3 = f"""Given the following adult story summary:\n---\n{summary}\n---\nAnd the following children's story archetypes:\n---\n{archetypes}\n---\nAnalyze the structure of the adult story and select the children's archetype it most closely resembles. Explain your reasoning."""
-        context.append({"role": "user", "content": prompt3})
-        matched_archetype = chat(context)
-        context.append({"role": "assistant", "content": matched_archetype})
+        # Combined Step 3 & 4: Match archetype and transform elements
+        prompt_combined = f"""
+Given the following adult story outline:
+---
+{outline}
+---
 
-        # Step 4: Transform mature elements
-        logger.debug("Step 4: Transforming mature elements")
-        prompt4 = f"""Using the following adult story summary:\n---\n{summary}\n---\nTransform the more mature or dark elements into metaphors or themes suitable for young children, while retaining the emotional or thematic essence."""
-        context.append({"role": "user", "content": prompt4})
+And the following children's story archetypes:
+---
+{archetypes}
+---
+
+Perform the following two tasks clearly labeled as "Task 1" and "Task 2":
+
+Task 1: Analyze the adult story structure and select the children's archetype it most closely resembles. Explain your reasoning briefly.
+
+Task 2: Transform the mature or dark elements of the adult story into metaphors or themes suitable for young children, retaining the emotional or thematic essence. Be concise.  Only transform what is necessary.  Keep this in outline form
+
+Task 3: Give a concise synopsis of the archetype you selected in Task 1, and changes you made in Task 2.
+"""
+
+        context.append({"role": "user", "content": prompt_combined})
         transformed = chat(context)
         context.append({"role": "assistant", "content": transformed})
 
         # Step 5: Rewrite as a children's story
         logger.debug("Step 5: Rewriting as children's story")
-        prompt5 = f"""Using the transformed elements below:\n---\n{transformed}\n---\nWrite a children's story version of the original adult tale. The story should be appropriate for kids aged 5–8, spanning 10–20 pages of 1–2 sentences each. Format the output as a list of short pages."""
+        prompt5 = f"""Using the outline and archetypebelow:\n---\n{transformed}\n---\n
+        Write a children's story version of the original adult tale. The story should be appropriate for kids aged 5–8,
+        spanning 10–20 pages of a handful of sentences each page.  It should be in outline format. The part of the outline should be a parents guide of 500 words explaining how the archetype was chosen and euphismisitcally describe what is left out.."""
         context.append({"role": "user", "content": prompt5})
         child_story = chat(context)
 

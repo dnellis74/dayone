@@ -11,6 +11,11 @@ An AI-powered application that transforms adult stories into children's stories 
 - Comprehensive logging
 - Error handling
 
+### Example Transformations
+![Story Input Interface](static/bear-home.png)
+![Story Input Interface](static/robot-police.png)
+![Story Input Interface](static/shark-attack.png)
+
 ## Architecture
 
 The project consists of three main components:

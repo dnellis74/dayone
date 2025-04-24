@@ -18,11 +18,17 @@ else:
     story_text = st.text_area("Paste the full story or a detailed summary")
 
 if st.button("Transform"):
-    with st.spinner("Rewriting for young readers..."):
-        try:
-            result = run_agent(story_title=story_title, story_text=story_text)
-            st.subheader("📚 Story Transformation")
-            # Render the HTML div safely
-            st.html(result)
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
+    progress_placeholder = st.empty()
+    result_placeholder = st.empty()
+    
+    def update_progress(step, message):
+        with progress_placeholder:
+            st.write(f"Step {step}: {message}")
+    
+    try:
+        result = run_agent(story_title=story_title, story_text=story_text, progress_callback=update_progress)
+        progress_placeholder.empty()  # Clear the progress messages
+        with result_placeholder:
+            st.components.v1.html(result, height=600, scrolling=True)
+    except Exception as e:
+        st.error(f"An error occurred: {e}")

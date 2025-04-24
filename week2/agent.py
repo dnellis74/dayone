@@ -45,7 +45,7 @@ def generate_images(captions, model="dall-e-3", size="1024x1024"):
     http_client = httpx.Client()
     client = OpenAI(http_client=http_client)
     images = []
-    style = "A children’s storybook illustration in soft pencil and pastel colors. The art style is textured, warm, and hand-drawn, like classic illustrated books from the 90s."
+    style = "A children's storybook illustration in soft pencil and pastel colors. The art style is textured, warm, and hand-drawn, like classic illustrated books from the 90s."
     for caption in captions:
         response = client.images.generate(
             model=model,
@@ -57,8 +57,10 @@ def generate_images(captions, model="dall-e-3", size="1024x1024"):
         images.append({"caption": caption, "url": image_url})
     return images
 
-def run_agent(story_title="", story_text=""):
+def run_agent(story_title="", story_text="", progress_callback=None):
     try:
+        if progress_callback:
+            progress_callback(1, "Loading story archetypes...")
         logger.info(f"Starting run_agent with title: {story_title}")
         context = []
 
@@ -68,6 +70,8 @@ def run_agent(story_title="", story_text=""):
         context.append({"role": "assistant", "content": archetypes})
 
         # Step 2: Get or use adult story outline
+        if progress_callback:
+            progress_callback(2, "Analyzing story structure...")
         logger.debug("Step 2: Getting story outline")
         if story_text.strip():
             logger.debug("Using provided story text")
@@ -84,6 +88,8 @@ def run_agent(story_title="", story_text=""):
             return "Error: You must provide either a story title or full story text."
 
         # Combined Step 3 & 4: Match archetype and transform elements
+        if progress_callback:
+            progress_callback(3, "Transforming story elements...")
         prompt_combined = f"""
 Given the following adult story outline:
 ---
@@ -109,6 +115,8 @@ Task 3: Give a concise synopsis of why the archetype was chosen in Task 1, and c
         context.append({"role": "assistant", "content": transformed})
 
         # Step 5: Rewrite as a children's story
+        if progress_callback:
+            progress_callback(4, "Creating child-friendly version...")
         logger.debug("Step 5: Rewriting as children's story")
         prompt5 = f"""Using the outline and archetypebelow:\n---\n{transformed}\n---\n
         Write a children's story version of the original adult tale. The story should be appropriate for kids aged 5–8,
@@ -132,9 +140,13 @@ Task 3: Give a concise synopsis of why the archetype was chosen in Task 1, and c
         captions = [line.strip("- ").strip() for line in image_prompts.split("\n") if line.strip()]
 
         # Generate images
+        if progress_callback:
+            progress_callback(5, "Generating illustrations...")
         logger.debug("Step 6: Getting images")
         images = generate_images(captions[:3])  # limit to 3
         
+        if progress_callback:
+            progress_callback(6, "Formatting final story...")
         logger.debug("Step 7: HTML")
         context.append({"role": "user", "content": f"""
                         Finally, format the story as an HTML div and return with inline links to images.  Don't wrap the html in a markdown block, or any other text.

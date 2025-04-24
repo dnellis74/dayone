@@ -40,6 +40,22 @@ def chat(messages, model="gpt-4.1-mini", temperature=0.7):
         logger.error(f"Error in chat function: {str(e)}")
         logger.error(f"Stack trace: {traceback.format_exc()}")
         raise
+    
+def generate_images(captions, model="dall-e-3", size="1024x1024"):
+    http_client = httpx.Client()
+    client = OpenAI(http_client=http_client)
+    images = []
+    style = "A children’s storybook illustration in soft pencil and pastel colors. The art style is textured, warm, and hand-drawn, like classic illustrated books from the 90s."
+    for caption in captions:
+        response = client.images.generate(
+            model=model,
+            prompt=f"{style} {caption}",
+            n=1,
+            size=size
+        )
+        image_url = response.data[0].url
+        images.append({"caption": caption, "url": image_url})
+    return images
 
 def run_agent(story_title="", story_text=""):
     try:
@@ -85,7 +101,7 @@ Task 1: Analyze the adult story structure and select the children's archetype it
 
 Task 2: Transform the mature or dark elements of the adult story into metaphors or themes suitable for young children, retaining the emotional or thematic essence. Be concise.  Only transform what is necessary.  Keep this in outline form
 
-Task 3: Give a concise synopsis of the archetype you selected in Task 1, and changes you made in Task 2.
+Task 3: Give a concise synopsis of why the archetype was chosen in Task 1, and changes you made in Task 2.
 """
 
         context.append({"role": "user", "content": prompt_combined})
@@ -99,9 +115,39 @@ Task 3: Give a concise synopsis of the archetype you selected in Task 1, and cha
         spanning 10–20 pages of a handful of sentences each page.  It should be in outline format. The part of the outline should be a parents guide of 500 words explaining how the archetype was chosen and euphismisitcally describe what is left out.."""
         context.append({"role": "user", "content": prompt5})
         child_story = chat(context)
+        
+        # Extract 2–3 prompts from the story for illustrations
+        prompt_image_captions = f"""
+        Here is a children's story:
+        ---
+        {child_story}
+        ---
 
-        logger.info("Successfully completed story transformation")
-        return child_story
+        Pick 1 to 3 key visual moments or scenes from this story that would make good illustrations.
+        Write each one as a one-sentence image prompt.
+        """
+
+        context.append({"role": "user", "content": prompt_image_captions})
+        image_prompts = chat(context)
+        captions = [line.strip("- ").strip() for line in image_prompts.split("\n") if line.strip()]
+
+        # Generate images
+        logger.debug("Step 6: Getting images")
+        images = generate_images(captions[:3])  # limit to 3
+        
+        logger.debug("Step 7: HTML")
+        context.append({"role": "user", "content": f"""
+                        Finally, format the story as an HTML div and return with inline links to images.  Don't wrap the html in a markdown block, or any other text.
+                        
+                        story {child_story}
+                        
+                        images {images}
+                        
+                        """})
+
+        html = chat(context)
+        logger.info(f"Successfully completed story transformation\n{html}")
+        return html
     except Exception as e:
         logger.error(f"Error in run_agent: {str(e)}")
         logger.error(f"Stack trace: {traceback.format_exc()}")

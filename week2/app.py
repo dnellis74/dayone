@@ -1,7 +1,10 @@
 import streamlit as st
 from agent import run_agent
 
-st.set_page_config(page_title="KidKind Classics", layout="centered")
+st.set_page_config(
+    page_title="KidKind Classics",
+    layout="centered"   
+)
 st.title("🧒📖 KidKind Classics")
 
 input_mode = st.radio("How would you like to provide the adult story?", ["Use a story title", "Paste story text"])
@@ -18,8 +21,8 @@ if st.button("Transform"):
     with st.spinner("Rewriting for young readers..."):
         try:
             result = run_agent(story_title=story_title, story_text=story_text)
-            st.subheader("📚 Story Outline")
-            # Display the outline as is, preserving its format
-            st.markdown(result)
+            st.subheader("📚 Story Transformation")
+            # Render the HTML div safely
+            st.html(result)
         except Exception as e:
             st.error(f"An error occurred: {e}")
